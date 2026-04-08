@@ -38,3 +38,24 @@ class QuizGame:
             {"question": "SGitHub와 같은 원격 저장소에 로컬에서 작업한 커밋(Commit) 내역을 업로드할 때 사용하는 Git 명령어는 무엇인가?", "choices": ["git clone", "git pull", "git push", "git commit"], "answer": 3},
             {"question": "Git에서 새로운 변경 사항을 스테이징 영역(Staging Area)에 추가하기 위해 사용하는 명령어는 무엇인가?", "choices": ["git init", "git checkout", "git add", "git status"], "answer": 3}
         ]
+
+    def run(self):
+        while True:
+            print("\n===== 퀴즈 게임 메뉴 =====")
+            print("1. 퀴즈 풀기")
+            print("2. 퀴즈 등록")
+            print("3. 퀴즈 목록")
+            print("4. 최고 점수 확인")
+            print("5. 종료")
+            print("==========================")
+            
+            choice = self.safe_input("메뉴 선택: ", 1, 5)
+            
+            if choice == 1: self.play_game()
+            elif choice == 2: self.add_quiz()
+            elif choice == 3: self.show_list()
+            elif choice == 4: self.show_best_score()
+            elif choice == 5:
+                print("게임을 종료합니다.")
+                self.save_data()
+                break       
