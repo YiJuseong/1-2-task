@@ -39,11 +39,51 @@ class QuizGame:
             {"question": "Git에서 새로운 변경 사항을 스테이징 영역(Staging Area)에 추가하기 위해 사용하는 명령어는 무엇인가?", "choices": ["git init", "git checkout", "git add", "git status"], "answer": 3}
         ]
 
+        if not os.path.exists(self.file_path):
+            self.quizzes = [Quiz(**q) for q in default_quizzes]
+            return
+        
+        try:
+            with open(self.file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                self.quizzes = [Quiz(**q) for q in data.get("quizzes", [])]
+                self.best_score = data.get("best_score", 0)
+        except (json.JSONDecodeError, IOError):
+            print("\n[알림] 데이터 파일이 손상되어 기본 데이터로 초기화합니다.")
+            self.quizzes = [Quiz(**q) for q in default_quizzes]
+            self.save_data()
+
     def save_data(self):
         data = {
             "quizzes": [q.to_dict() for q in self.quizzes],
             "best_score": self.best_score
         }
+
+        try:
+            with open(self.file_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            print(f"저장 오류: {e}")
+
+    def safe_input(self, prompt, range_min=None, range_max=None):
+        while True:
+            try:
+                user_input = input(prompt).strip()
+                if not user_input:
+                    print("비어 있는 입력입니다. 다시 입력해주세요.")
+                    continue
+                
+                val = int(user_input)
+                if range_min is not None and (val < range_min or val > range_max):
+                    print(f"범위 오류 ({range_min}~{range_max} 사이 숫자를 입력하세요).")
+                    continue
+                return val
+            except ValueError:
+                print("숫자만 입력 가능합니다. 다시 시도하세요.")
+            except (EOFError, KeyboardInterrupt):
+                print("\n\n입력이 중단되었습니다. 프로그램을 안전하게 종료하고 데이터를 저장합니다.")
+                self.save_data()
+                sys.exit(0)
 
     def play_game(self):
         if not self.quizzes:
@@ -110,3 +150,7 @@ class QuizGame:
                 print("게임을 종료합니다.")
                 self.save_data()
                 break       
+
+if __name__ == "__main__":
+    game = QuizGame()
+    game.run()
