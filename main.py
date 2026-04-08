@@ -39,6 +39,28 @@ class QuizGame:
             {"question": "Git에서 새로운 변경 사항을 스테이징 영역(Staging Area)에 추가하기 위해 사용하는 명령어는 무엇인가?", "choices": ["git init", "git checkout", "git add", "git status"], "answer": 3}
         ]
 
+    def play_game(self):
+        if not self.quizzes:
+            print("\n출제할 문제가 없습니다. 문제를 추가해주세요.")
+            return
+
+        score = 0
+        print("\n--- 퀴즈를 시작합니다! ---")
+        for i, q in enumerate(self.quizzes, 1):
+            q.display(i)
+            ans = self.safe_input("정답 번호 입력: ", 1, 4)
+            if q.is_correct(ans):
+                print("정답입니다!")
+                score += 1
+            else:
+                print(f"틀렸습니다. 정답은 {q.answer}번입니다.")
+
+        print(f"\n최종 점수: {score} / {len(self.quizzes)}")
+        if score > self.best_score:
+            print(f"축하합니다! 최고 기록 달성 (이전: {self.best_score})")
+            self.best_score = score
+            self.save_data()
+
     def run(self):
         while True:
             print("\n===== 퀴즈 게임 메뉴 =====")
