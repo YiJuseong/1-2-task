@@ -50,9 +50,24 @@ class QuizGame:
                 self.quizzes = [Quiz(**q) for q in data.get("quizzes", [])]
                 self.best_score = data.get("best_score", 0)
         except (json.JSONDecodeError, IOError):
-            print("\n[알림] 데이터 파일이 손상되어 기본 데이터로 초기화합니다.")
-            self.quizzes = [Quiz(**q) for q in default_quizzes]
-            self.save_data()
+            print("\n[알림] 데이터 파일이 손상되었거나 읽을 수 없습니다.")
+            while True:
+                user_input = input("기본 데이터로 초기화할까요? (y/n): ").lower().strip()
+    
+                if user_input == 'y':
+                    self.quizzes = [Quiz(**q) for q in default_quizzes]
+                    if self.save_data():
+                        print("기본 데이터로 초기화되었습니다.")
+                        break
+                    else:
+                        print("기본 데이터로 초기화에 실패했습니다.")
+                    
+                elif user_input == 'n':
+                    print("초기화를 취소합니다. 기존 파일을 수동으로 점검해주세요.")
+                    break  # 루프 탈출
+                else:
+                    print("잘못된 입력입니다. 'y' 또는 'n'만 입력해주세요.")
+                
 
     def save_data(self):
         try:
@@ -62,7 +77,7 @@ class QuizGame:
             }, ensure_ascii=False, indent=4)
         except (TypeError, ValueError) as e:
             print(f"[데이터 오류] JSON 변환에 실패했습니다: {e}")
-            return
+            return False
 
         temp_file = self.file_path + ".tmp"
 
@@ -74,14 +89,16 @@ class QuizGame:
             
             os.replace(temp_file, self.file_path)
             print("[저장 완료] 데이터가 안전하게 업데이트되었습니다.")
+            return True
         
         except Exception as e:
             print(f"\n[저장 실패] 데이터 보존을 위해 기존 파일을 유지합니다. 에러: {e}")
-            traceback.print_exe()
+            traceback.print_exc()
             if os.path.exists(temp_file):
                 os.remove(temp_file)
+            return False
 
-    def safe_input(self, prompt, range_min=None, range_max=None):
+    def safe_input(self, prompt, range_min=0, range_max=0):
         while True:
             try:
                 user_input = input(prompt).strip()
@@ -97,9 +114,16 @@ class QuizGame:
             except ValueError:
                 print("숫자만 입력 가능합니다. 다시 시도하세요.")
             except (EOFError, KeyboardInterrupt):
-                print("\n\n입력이 중단되었습니다. 프로그램을 안전하게 종료하고 데이터를 저장합니다.")
-                self.save_data()
-                sys.exit(0)
+                if self.save_data():
+                    print("데이터가 안전하게 저장되었습니다. 프로그램을 종료합니다.")
+                    sys.exit(0)
+                else:
+                    print("데이터 저장에 실패했습니다!")
+                    sys.exit(1)
+                    
+
+
+                
 
     def play_game(self):
         if not self.quizzes:
@@ -118,13 +142,16 @@ class QuizGame:
                 print(f"틀렸습니다. 정답은 {q.answer}번입니다.")
 
         print(f"\n최종 점수: {score} / {len(self.quizzes)}")
-        if self.best_score == None:
-            print(f"축하합니다! 최고 기록 달성 (이전: {self.best_score})")
+        if self.best_score is None or score > self.best_score:
+            prev_record = "없음" if self.best_score is None else self.best_score
+            print(f"🎊 축하합니다! 새로운 최고 기록 달성! (이전 기록: {prev_record})")
             self.best_score = score
-        elif score > self.best_score:
-            print(f"축하합니다! 새로운 최고 기록 달성 (이전: {self.best_score})")
-            self.best_score = score
-            self.save_data()
+            if self.save_data():
+                print("기록이 안전하게 저장되었습니다.")
+            else:
+                print("기록 저장에 실패했습니다.")
+        else:
+            print(f"현재 최고 기록은 {self.best_score}점입니다. 다음 기회에 도전하세요!")
 
     def add_quiz(self):
         print("\n--- 새 퀴즈 추가 ---")
@@ -135,9 +162,11 @@ class QuizGame:
         answer = self.safe_input("정답 번호(1~4) 입력: ", 1, 4)
         
         self.quizzes.append(Quiz(question, choices, answer))
-        self.save_data()
-        print("퀴즈가 성공적으로 등록되었습니다.")
-    
+        if self.save_data():
+            print("퀴즈가 성공적으로 등록되었습니다.")
+        else:
+            print("퀴즈 등록에 실패했습니다.")
+   
     def show_list(self):
         print("\n--- 등록된 퀴즈 목록 ---")
         if not self.quizzes:
