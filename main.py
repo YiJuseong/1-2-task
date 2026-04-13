@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import traceback
 
 class Quiz:
     def __init__(self, question: str, choices: list, answer: int):
@@ -54,22 +55,29 @@ class QuizGame:
             self.save_data()
 
     def save_data(self):
-        data = {
+        try:
+            json_data = json.dumps({
             "quizzes": [q.to_dict() for q in self.quizzes],
             "best_score": self.best_score
-        }
+            }, ensure_ascii=False, indent=4)
+        except (TypeError, ValueError) as e:
+            print(f"[데이터 오류] JSON 변환에 실패했습니다: {e}")
+            return
 
         temp_file = self.file_path + ".tmp"
 
         try:
             with open(temp_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=4)
-
+                f.write(json_data)
+                f.flush() 
+                os.fsync(f.fileno())
             
             os.replace(temp_file, self.file_path)
+            print("[저장 완료] 데이터가 안전하게 업데이트되었습니다.")
         
         except Exception as e:
             print(f"\n[저장 실패] 데이터 보존을 위해 기존 파일을 유지합니다. 에러: {e}")
+            traceback.print_exe()
             if os.path.exists(temp_file):
                 os.remove(temp_file)
 
